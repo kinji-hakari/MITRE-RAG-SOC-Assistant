@@ -18,7 +18,7 @@ Petit prototype qui enrichit des alertes avec le contexte MITRE ATT&CK (via embe
 ```powershell
 python -m venv .venv
 # PowerShell
-.\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\activate     
 ```
 
 2. Installez les dépendances :
